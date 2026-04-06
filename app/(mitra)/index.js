@@ -14,6 +14,7 @@ export default function DashboardMitra() {
     const [refreshing, setRefreshing] = useState(false); // State untuk refresh
     const [dashboardData, setDashboardData] = useState(null);
     const [userData, setUserData] = useState(null);
+    const [storeLogo, setStoreLogo] = useState(null);
 
     const THEME_COLOR = '#633594';
 
@@ -27,7 +28,7 @@ export default function DashboardMitra() {
             const rawUser = await storage.get('userData');
             if (!rawUser) {
                 router.replace('/(auth)/login');
-                return;
+                return null;
             }
             const parsedUser = typeof rawUser === 'string' ? JSON.parse(rawUser) : rawUser;
             setUserData(parsedUser);
@@ -35,25 +36,66 @@ export default function DashboardMitra() {
             if (parsedUser.store_id) {
                 const response = await API.get(`/mitra/dashboard/${parsedUser.store_id}`);
                 if (response.data.success) {
-                    console.log(response.data.data, "data")
                     setDashboardData(response.data.data);
                 }
+                return parsedUser.store_id; // Tambahkan ini
             }
         } catch (error) {
             console.error("❌ Error Dashboard:", error.message);
-            Alert.alert("Koneksi Gagal", "Tidak dapat terhubung ke server.");
         } finally {
             setLoading(false);
             setRefreshing(false);
         }
+        return null;
     };
 
-    // Fungsi saat layar ditarik ke bawah
-    const onRefresh = useCallback(() => {
+    const onRefresh = useCallback(async () => {
         setRefreshing(true);
-        fetchDashboardData();
+        const storeId = await fetchDashboardData();
+        if (storeId) {
+            fetchStorePhoto(storeId);
+        }
     }, []);
 
+    useEffect(() => {
+        const initData = async () => {
+            // Ambil data dashboard dulu
+            const storeId = await fetchDashboardData();
+            // Jika storeId ada, baru ambil fotonya
+            if (storeId) {
+                fetchStorePhoto(storeId);
+            }
+        };
+        initData();
+    }, []);
+
+   const fetchStorePhoto = async (storeId) => {
+    try {
+        const token = await storage.get('userToken');
+        const res = await API.get(`/mitra/profile/${storeId}`, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (res.data && res.data.store_logo_url) {
+            let url = res.data.store_logo_url;
+            const baseUrl = 'https://backend.tangerangfast.online';
+
+            // Samakan logikanya dengan halaman Complete Profile
+            // Jika ada '/uploads/' tapi belum ada '/services/', selipkan '/services/'
+            if (url.includes('/uploads/') && !url.includes('/services/')) {
+                url = url.replace('/uploads/', '/uploads/services/');
+            }
+
+            const cleanPath = url.startsWith('/') ? url : `/${url}`;
+            const fullUrl = `${baseUrl}${cleanPath}`;
+
+            console.log("Full Logo URL (Corrected):", fullUrl);
+            setStoreLogo(fullUrl);
+        }
+    } catch (err) {
+        console.error("Gagal ambil foto toko:", err);
+    }
+};
     const formatIDR = (val) => {
         return new Intl.NumberFormat('id-ID', {
             style: 'currency',
@@ -61,6 +103,8 @@ export default function DashboardMitra() {
             minimumFractionDigits: 0
         }).format(val || 0);
     };
+
+
 
     const getStatusColor = (order) => {
         // Jika sedang menunggu konfirmasi pelanggan
@@ -97,7 +141,7 @@ export default function DashboardMitra() {
     };
 
     const openWhatsApp = () => {
-        const phoneNumber = '6282323907426';
+        const phoneNumber = '628211074757';
         const message = 'Halo CS Mitra Fast, saya mitra ingin bertanya terkait kendala sistem...';
         const url = `whatsapp://send?phone=${phoneNumber}&text=${encodeURIComponent(message)}`;
 
@@ -141,7 +185,15 @@ export default function DashboardMitra() {
                 <View style={[styles.headerCard, { backgroundColor: THEME_COLOR }]}>
                     <View style={styles.profileRow}>
                         <View style={styles.avatarContainer}>
-                            <Ionicons name="person" size={40} color={THEME_COLOR} />
+                            {storeLogo ? (
+                                <Image
+                                    source={{ uri: storeLogo }}
+                                    style={styles.avatarImage}
+                                    resizeMode="cover"
+                                />
+                            ) : (
+                                <Ionicons name="person" size={40} color={THEME_COLOR} />
+                            )}
                         </View>
                         <View style={styles.profileText}>
                             <Text style={styles.balanceText}>{formatIDR(dashboardData?.stats?.balance)}</Text>
@@ -358,4 +410,19 @@ const styles = StyleSheet.create({
     btnBantuan: { backgroundColor: '#633594', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 6, alignSelf: 'flex-start' },
     btnBantuanText: { color: '#fff', fontWeight: 'bold', fontSize: 11 },
     helpImage: { width: 60, height: 80, resizeMode: 'contain' },
+    avatarContainer: {
+        width: 60,
+        height: 60,
+        borderRadius: 40,
+        backgroundColor: '#F0F0F0',
+        justifyContent: 'center',
+        alignItems: 'center',
+        overflow: 'hidden',
+        borderWidth: 2,
+        borderColor: '#fff'
+    },
+    avatarImage: {
+        width: '100%',
+        height: '100%',
+    },
 });

@@ -4,12 +4,12 @@
     "slug": "MitraTangerangFast",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/new-icon.jpeg",
+    "icon": "./assets/playstore.png",
     "scheme": "mitratangerangfast",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/new-icon.jpeg",
+      "image": "./assets/playstore.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -39,7 +39,7 @@
         }
       },
       "adaptiveIcon": {
-        "foregroundImage": "./assets/new-icon.jpeg",
+        "foregroundImage": "./assets/playstore.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true
