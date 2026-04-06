@@ -6,8 +6,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { Picker } from '@react-native-picker/picker';
-import API from '../../utils/api';
-import { storage } from '../../utils/storage';
+import API from '../utils/api';
+import { storage } from '../utils/storage';
 
 export default function ServicesScreen() {
     const [services, setServices] = useState([]);

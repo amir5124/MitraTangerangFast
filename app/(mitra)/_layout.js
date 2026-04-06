@@ -1,5 +1,5 @@
-import { Tabs } from 'expo-router';
-import { Ionicons, Octicons, FontAwesome } from '@expo/vector-icons';
+import { Tabs, Stack } from 'expo-router';
+import { Ionicons, Octicons,  } from '@expo/vector-icons';
 
 export default function MitraLayout() {
     return (
@@ -58,9 +58,38 @@ export default function MitraLayout() {
             />
 
             <Tabs.Screen
+                name="profile"
+                options={{
+                    title: 'Akun',
+                    tabBarLabel: 'Akun',
+                    tabBarIcon: ({ color, focused }) => (
+                        <Ionicons name={focused ? "person" : "person-outline"} size={24} color={color} />
+                    ),
+                }}
+            />
+
+            <Stack.Screen 
+        name="edit-profile" 
+        options={{ 
+          title: 'Edit Profil',
+          headerShown: false, // Karena kita pakai header kustom di file edit-profile.js
+          presentation: 'modal' // Opsional: membuat tampilan slide dari bawah (ala iOS)
+        }} 
+      />
+
+      {/* Screen Ubah Password */}
+      <Stack.Screen 
+        name="change-password" 
+        options={{ 
+          title: 'Ubah Password',
+          headerShown: false // Menggunakan header kustom di file change-password.js
+        }} 
+      />
+
+            <Tabs.Screen
                 name="withdraw"
                 options={{
-                    href: null, // Ini akan menghilangkan ikon dari tab ba
+                    href: null, 
                     title: 'Tarik Saldo',
                     headerStyle: { backgroundColor: '#633594' },
                     headerTintColor: '#fff',

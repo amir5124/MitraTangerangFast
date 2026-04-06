@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { storage } from '../utils/storage'; // Pastikan path benar
+import { storage } from './storage'; // Pastikan path benar
 
 const API = axios.create({
     baseURL: 'https://backend.tangerangfast.online/api',

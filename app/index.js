@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { View, ActivityIndicator, StyleSheet, Platform, Alert } from 'react-native';
-import { storage } from '../utils/storage';
+import { storage } from './utils/storage';
 
 export default function Index() {
     const router = useRouter();

@@ -15,8 +15,8 @@ import {
     View,
     Image
 } from 'react-native';
-import API from '../../utils/api';
-import { storage } from '../../utils/storage';
+import API from '../utils/api';
+import { storage } from '../utils/storage';
 
 const LoginScreen = () => {
     const router = useRouter();
@@ -107,11 +107,11 @@ const LoginScreen = () => {
                 <Text style={styles.title}>Masuk</Text>
 
                 <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Maukan email</Text>
+                    <Text style={styles.label}>Masukan email</Text>
                     <TextInput
                         style={styles.input}
                         autoCapitalize="none"
-                        placeholder="Masukkan email"
+                        placeholder="Masukan email"
                         placeholderTextColor="#cbd5e1"
                         value={form.email}
                         onChangeText={(v) => setForm({ ...form, email: v })}
@@ -124,7 +124,7 @@ const LoginScreen = () => {
                         <TextInput
                             style={[styles.input, { flex: 1, borderBottomWidth: 0 }]}
                             secureTextEntry={!showPassword}
-                            placeholder="Masukkan kata sandi"
+                            placeholder="Masukan kata sandi"
                             placeholderTextColor="#cbd5e1"
                             value={form.password}
                             onChangeText={(v) => setForm({ ...form, password: v })}
@@ -150,21 +150,9 @@ const LoginScreen = () => {
                     {loading ? <ActivityIndicator color="#fff" /> : <Text style={[styles.btnLoginText, !isFormValid && { color: '#94a3b8' }]}>Masuk</Text>}
                 </TouchableOpacity>
 
-                <View style={styles.dividerContainer}>
-                    <View style={styles.line} />
-                    <Text style={styles.dividerText}>atau masuk dengan</Text>
-                    <View style={styles.line} />
-                </View>
+             
 
-                <TouchableOpacity style={styles.socialBtn}>
-                    <Image source={{ uri: 'https://img.icons8.com/color/48/000000/google-logo.png' }} style={styles.socialIcon} />
-                    <Text style={styles.socialText}>Google</Text>
-                </TouchableOpacity>
 
-                <TouchableOpacity style={styles.socialBtn}>
-                    <Image source={{ uri: 'https://img.icons8.com/color/48/000000/facebook-new.png' }} style={styles.socialIcon} />
-                    <Text style={styles.socialText}>Facebook</Text>
-                </TouchableOpacity>
 
                 <View style={styles.footer}>
                     <Text style={styles.footerText}>Belum punya akun? </Text>

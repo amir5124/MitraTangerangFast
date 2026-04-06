@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "206607018424",
+    "project_id": "mitra-tangerangfast",
+    "storage_bucket": "mitra-tangerangfast.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:206607018424:android:34a579b3a3619cc9a7074d",
+        "android_client_info": {
+          "package_name": "com.tangerangfast.mitra"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAOqkbQqhltDs7AaVhl_EFC-LxHwwA968w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

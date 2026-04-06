@@ -6,7 +6,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import API from '../../../utils/api';
+import API from '../../utils/api';
 import Toast from 'react-native-root-toast';
 
 export default function DetailOrder() {

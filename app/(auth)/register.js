@@ -15,8 +15,8 @@ import {
     View,
     Image
 } from 'react-native';
-import API from '../../utils/api';
-import { storage } from '../../utils/storage';
+import API from '../utils/api';
+import { storage } from '../utils/storage';
 
 export default function RegisterScreen() {
     const router = useRouter();
@@ -126,7 +126,7 @@ export default function RegisterScreen() {
                     <Text style={styles.label}>Nama Lengkap Pendaftar</Text>
                     <TextInput
                         style={styles.input}
-                        placeholder="Masukkan nama lengkap"
+                        placeholder="Masukan nama lengkap"
                         placeholderTextColor="#cbd5e1"
                         value={form.full_name}
                         onChangeText={(v) => setForm({ ...form, full_name: v })}
@@ -137,7 +137,7 @@ export default function RegisterScreen() {
                     <Text style={styles.label}>Email</Text>
                     <TextInput
                         style={styles.input}
-                        placeholder="contoh@mail.com"
+                        placeholder="contoh@gmail.com"
                         placeholderTextColor="#cbd5e1"
                         keyboardType="email-address"
                         autoCapitalize="none"
@@ -206,16 +206,7 @@ export default function RegisterScreen() {
                     )}
                 </TouchableOpacity>
 
-                <View style={styles.dividerContainer}>
-                    <View style={styles.line} />
-                    <Text style={styles.dividerText}>atau daftar dengan</Text>
-                    <View style={styles.line} />
-                </View>
-
-                <TouchableOpacity style={styles.socialBtn}>
-                    <Image source={{ uri: 'https://img.icons8.com/color/48/000000/google-logo.png' }} style={styles.socialIcon} />
-                    <Text style={styles.socialText}>Google</Text>
-                </TouchableOpacity>
+              
 
             </ScrollView>
         </KeyboardAvoidingView>

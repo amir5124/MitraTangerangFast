@@ -8,8 +8,8 @@ import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import Toast from 'react-native-root-toast';
 import { Ionicons } from '@expo/vector-icons';
-import API from '../../utils/api';
-import { storage } from '../../utils/storage';
+import API from '../utils/api';
+import { storage } from '../utils/storage';
 import { useRouter } from 'expo-router';
 
 // Inisialisasi MapView untuk Mobile
@@ -70,6 +70,11 @@ export default function CompleteProfileScreen() {
     const categories = [
         { label: 'Servis AC', value: 'ac' },
         { label: 'Cleaning Service', value: 'cleaning' },
+        { label: 'ART & Babysitter', value: 'art' },
+        { label: 'Rijit', value: 'rijit' },
+        { label: 'Tukang Bangunan', value: 'bangunan' },
+        { label: 'Tukang Kebun', value: 'kebun' },
+        { label: 'Layanan Korporasi', value: 'korporasi' },
     ];
 
     useEffect(() => {

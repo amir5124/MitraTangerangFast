@@ -39,5 +39,4 @@ yarn-error.*
 # generated native folders
 /ios
 /android
-# Root Google Services file
-/google-services.json
+

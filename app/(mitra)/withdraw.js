@@ -5,8 +5,8 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import API from '../../utils/api';
-import { storage } from '../../utils/storage';
+import API from '../utils/api';
+import { storage } from '../utils/storage';
 
 const BANK_LIST = [
     { label: 'Bank BCA', code: '014' },
