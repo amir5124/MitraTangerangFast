@@ -35,6 +35,7 @@ export default function DashboardMitra() {
             if (parsedUser.store_id) {
                 const response = await API.get(`/mitra/dashboard/${parsedUser.store_id}`);
                 if (response.data.success) {
+                    console.log(response.data.data, "data")
                     setDashboardData(response.data.data);
                 }
             }

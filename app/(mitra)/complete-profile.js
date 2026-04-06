@@ -384,11 +384,7 @@ export default function CompleteProfileScreen() {
                         {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Simpan Data Profil</Text>}
                     </TouchableOpacity>
 
-                    {/* LOGOUT */}
-                    <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-                        <Ionicons name="log-out-outline" size={20} color="#FF3B30" />
-                        <Text style={styles.logoutText}>Keluar dari Akun</Text>
-                    </TouchableOpacity>
+                   
                 </View>
             </ScrollView>
         </KeyboardAvoidingView>

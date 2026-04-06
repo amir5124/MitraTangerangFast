@@ -95,16 +95,9 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.mainWrapper}>
-      <View style={styles.customHeader}>
-        <View style={styles.headerContent}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#000" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Profil Saya</Text>
-          <View style={{ width: 40 }} />
-        </View>
+      <View style={styles.header}>
+        <Text style={styles.title}>Akun Profile</Text>
+        <Text style={styles.subtitle}>Informasi akun profile Anda</Text>
       </View>
 
       <ScrollView
@@ -220,19 +213,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#FFF',
   },
-  customHeader: {
-    backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-    elevation: 3,
-  },
-  headerContent: {
-    height: 56,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 15,
-    justifyContent: 'space-between',
-  },
+  header: { padding: 25, backgroundColor: '#633594' },
+  title: { fontSize: 22, fontWeight: 'bold', color: '#fff' },
+  subtitle: { fontSize: 13, color: '#d8b4fe', marginTop: 5 },
   backButton: { padding: 5 },
   headerTitle: {
     color: '#000',
@@ -361,8 +344,8 @@ const styles = StyleSheet.create({
     marginTop: 40,
     fontWeight: '500',
   },
-   btn: { backgroundColor: '#633594', padding: 18, borderRadius: 15, alignItems: 'center', marginTop: 35, elevation: 3 },
-    btnText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
-    logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 25, padding: 15, backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: '#fee2e2' },
-    logoutText: { color: '#FF3B30', fontWeight: 'bold', marginLeft: 10, fontSize: 14 }
+  btn: { backgroundColor: '#633594', padding: 18, borderRadius: 15, alignItems: 'center', marginTop: 35, elevation: 3 },
+  btnText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+  logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 25, padding: 15, backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: '#fee2e2' },
+  logoutText: { color: '#FF3B30', fontWeight: 'bold', marginLeft: 10, fontSize: 14 }
 });
