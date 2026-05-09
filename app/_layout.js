@@ -70,6 +70,7 @@ export default function RootLayout() {
                         <Stack.Screen name="(auth)" />
                         <Stack.Screen name="(mitra)" />
                         <Stack.Screen name="withdraw" />
+                        <Stack.Screen name="review-screen" options={{ title: 'Ulasan Mitra' }} />
                     </Stack>
                 </SafeAreaView>
             </RootSiblingParent>

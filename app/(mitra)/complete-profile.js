@@ -202,17 +202,7 @@ export default function CompleteProfileScreen() {
         return `${BASE_URL}${cleanPath}`;
     };
 
-    const handleLogout = () => {
-        Alert.alert("Logout", "Apakah Anda yakin ingin keluar?", [
-            { text: "Batal", style: "cancel" },
-            {
-                text: "Ya, Keluar", style: "destructive", onPress: async () => {
-                    await storage.clearAll();
-                    router.replace('/(auth)/login');
-                }
-            }
-        ]);
-    };
+ 
 
     const handleSubmit = async () => {
         if (!form.store_name || !form.identity_number || !form.latitude) {

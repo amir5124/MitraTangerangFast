@@ -73,7 +73,7 @@ export default function ServicesScreen() {
             service_name: item.service_name,
             price_type: item.price_type,
             base_price: String(item.base_price).split('.')[0],
-            description: item.description || '', // Ambil deskripsi dari DB
+            description: item.description || '', 
         });
         setImage(getFullImageUrl(item.image_url));
         setShowForm(true);
@@ -100,7 +100,7 @@ export default function ServicesScreen() {
             formData.append('service_name', form.service_name);
             formData.append('price_type', form.price_type);
             formData.append('price', form.base_price);
-            formData.append('description', form.description); // Kirim deskripsi ke backend
+            formData.append('description', form.description); 
 
             if (image && !image.startsWith('http')) {
                 const filename = image.split('/').pop();
@@ -134,7 +134,6 @@ export default function ServicesScreen() {
                 Alert.alert("Sukses", "Layanan berhasil ditambahkan!");
             }
 
-            // Reset UI
             setShowForm(false);
             setEditId(null);
             setImage(null);
@@ -157,30 +156,26 @@ export default function ServicesScreen() {
                 style: "destructive",
                 onPress: async () => {
                     try {
-                        const token = await storage.get('userToken'); // AMBIL TOKEN
-
+                        const token = await storage.get('userToken'); 
                         await API.delete(`/services/${id}`, {
-                            headers: {
-                                'Authorization': `Bearer ${token}` // KIRIM TOKEN
-                            }
+                            headers: { 'Authorization': `Bearer ${token}` }
                         });
-
                         Alert.alert("Sukses", "Layanan berhasil dihapus.");
-                        fetchMyServices(); // Refresh list
+                        fetchMyServices(); 
                     } catch (e) {
-                        console.error("Delete Error:", e.response?.data || e.message);
-                        Alert.alert("Gagal", "Gagal menghapus data. Jasa mungkin sedang digunakan dalam pesanan.");
+                        Alert.alert("Gagal", "Gagal menghapus data.");
                     }
                 }
             }
         ]);
     };
+
     return (
         <ScrollView style={styles.container}>
             <View style={styles.header}>
                 <Text style={styles.title}>Manajemen Layanan</Text>
                 <TouchableOpacity
-                    style={[styles.addBtn, { backgroundColor: showForm ? '#64748b' : '#633594' }]}
+                    style={[styles.addBtn, { backgroundColor: showForm ? '#475569' : '#fff' }]}
                     onPress={() => {
                         setShowForm(!showForm);
                         setEditId(null);
@@ -188,36 +183,64 @@ export default function ServicesScreen() {
                         setForm({ service_name: '', price_type: 'fixed', base_price: '', description: '' });
                     }}
                 >
-                    <Ionicons name={showForm ? "close" : "add"} size={20} color="#fff" />
-                    <Text style={styles.addBtnText}>{showForm ? "Batal" : "Jasa Baru"}</Text>
+                    <Ionicons name={showForm ? "close" : "add"} size={20} color={showForm ? "#fff" : "#633594"} />
+                    <Text style={[styles.addBtnText, { color: showForm ? "#fff" : "#633594" }]}>{showForm ? "Batal" : "Jasa Baru"}</Text>
                 </TouchableOpacity>
             </View>
 
             {showForm && (
                 <View style={styles.formCard}>
                     <Text style={styles.formTitle}>{editId ? "Edit Layanan" : "Tambah Layanan Baru"}</Text>
-                    <TouchableOpacity style={styles.imagePlaceholder} onPress={pickImage}>
-                        {image ? (
-                            <Image source={{ uri: image }} style={styles.fullImg} />
-                        ) : (
-                            <View style={{ alignItems: 'center' }}>
-                                <Ionicons name="camera-outline" size={40} color="#ccc" />
-                                <Text style={{ color: '#ccc' }}>Pilih Foto Jasa</Text>
-                            </View>
+                    
+                    <View style={styles.imageSection}>
+                        <TouchableOpacity 
+                            style={[styles.imagePlaceholder, image && styles.imageSelected]} 
+                            onPress={pickImage}
+                            disabled={uploading}
+                        >
+                            {image ? (
+                                <View style={styles.fullImgContainer}>
+                                    <Image source={{ uri: image }} style={styles.fullImg} />
+                                    {uploading ? (
+                                        <View style={styles.uploadOverlay}>
+                                            <View style={styles.progressCircle}>
+                                                <ActivityIndicator size="large" color="#633594" />
+                                            </View>
+                                            <Text style={styles.uploadText}>Mengunggah...</Text>
+                                        </View>
+                                    ) : (
+                                        <View style={styles.changePhotoOverlay}>
+                                            <Ionicons name="camera" size={24} color="#fff" />
+                                            <Text style={{ color: '#fff', fontSize: 10, fontWeight: 'bold' }}>GANTI FOTO</Text>
+                                        </View>
+                                    )}
+                                </View>
+                            ) : (
+                                <View style={{ alignItems: 'center' }}>
+                                    <Ionicons name="image-outline" size={40} color="#cbd5e1" />
+                                    <Text style={{ color: '#94a3b8', marginTop: 5 }}>Ketuk untuk pilih foto</Text>
+                                </View>
+                            )}
+                        </TouchableOpacity>
+                        
+                        {image && !uploading && (
+                            <TouchableOpacity style={styles.removeImgBtn} onPress={() => setImage(null)}>
+                                <Text style={styles.removeImgText}>Hapus pilihan</Text>
+                            </TouchableOpacity>
                         )}
-                    </TouchableOpacity>
+                    </View>
 
                     <Text style={styles.label}>Nama Layanan</Text>
                     <TextInput
                         style={styles.input}
-                        placeholder="Contoh: Cuci AC Split 1 PK"
+                        placeholder="Nama Jasa"
                         value={form.service_name}
                         onChangeText={v => setForm({ ...form, service_name: v })}
                     />
 
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                         <View style={{ flex: 1, marginRight: 5 }}>
-                            <Text style={styles.label}>Tipe</Text>
+                            <Text style={styles.label}>Tipe Harga</Text>
                             <View style={styles.pickerBox}>
                                 <Picker selectedValue={form.price_type} onValueChange={v => setForm({ ...form, price_type: v })}>
                                     <Picker.Item label="Tetap" value="fixed" />
@@ -231,26 +254,33 @@ export default function ServicesScreen() {
                             <TextInput
                                 style={styles.input}
                                 keyboardType="numeric"
-                                placeholder="75000"
+                                placeholder="0"
                                 value={form.base_price}
                                 onChangeText={v => setForm({ ...form, base_price: v })}
                             />
                         </View>
                     </View>
 
-                    {/* INPUT DESKRIPSI JASA */}
                     <Text style={styles.label}>Deskripsi Layanan</Text>
                     <TextInput
                         style={[styles.input, styles.textArea]}
-                        placeholder="Jelaskan apa saja yang didapat pelanggan..."
+                        placeholder="Deskripsi jasa..."
                         value={form.description}
                         onChangeText={v => setForm({ ...form, description: v })}
                         multiline={true}
                         numberOfLines={4}
                     />
 
-                    <TouchableOpacity style={styles.saveBtn} onPress={handleSaveService} disabled={uploading}>
-                        {uploading ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>{editId ? "Update Data" : "Simpan Jasa"}</Text>}
+                    <TouchableOpacity 
+                        style={[styles.saveBtn, uploading && { opacity: 0.7 }]} 
+                        onPress={handleSaveService} 
+                        disabled={uploading}
+                    >
+                        {uploading ? (
+                            <ActivityIndicator color="#fff" />
+                        ) : (
+                            <Text style={styles.saveBtnText}>{editId ? "Simpan Perubahan" : "Simpan Jasa"}</Text>
+                        )}
                     </TouchableOpacity>
                 </View>
             )}
@@ -279,26 +309,35 @@ export default function ServicesScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#f1f5f9' },
-    header: { padding: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#633594', elevation: 2 },
+    container: { flex: 1, backgroundColor: '#f8fafc' },
+    header: { padding: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#633594' },
     title: { fontSize: 18, fontWeight: 'bold', color: '#fff' },
-    addBtn: { flexDirection: 'row', paddingVertical: 8, paddingHorizontal: 15, borderRadius: 20, alignItems: 'center' },
-    addBtnText: { color: '#fff', marginLeft: 5, fontWeight: 'bold' },
-    formCard: { backgroundColor: '#fff', margin: 15, padding: 20, borderRadius: 15, elevation: 5 },
-    formTitle: { fontSize: 16, fontWeight: 'bold', color: '#633594', marginBottom: 15 },
-    imagePlaceholder: { width: '100%', height: 150, backgroundColor: '#f8fafc', borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginBottom: 15, borderWidth: 1, borderColor: '#e2e8f0', borderStyle: 'dashed' },
-    fullImg: { width: '100%', height: '100%', borderRadius: 10 },
-    label: { fontSize: 12, fontWeight: 'bold', color: '#475569', marginBottom: 5 },
-    input: { backgroundColor: '#f8fafc', borderRadius: 10, padding: 12, marginBottom: 12, borderWidth: 1, borderColor: '#e2e8f0', color: '#334155' },
-    textArea: { height: 100, textAlignVertical: 'top' }, // Supaya teks mulai dari atas
-    pickerBox: { backgroundColor: '#f8fafc', borderRadius: 10, borderWidth: 1, borderColor: '#e2e8f0', marginBottom: 12, overflow: 'hidden' },
-    saveBtn: { backgroundColor: '#10b981', padding: 15, borderRadius: 10, alignItems: 'center', marginTop: 5 },
+    addBtn: { flexDirection: 'row', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 15, alignItems: 'center' },
+    addBtnText: { marginLeft: 4, fontWeight: 'bold', fontSize: 13 },
+    formCard: { backgroundColor: '#fff', margin: 15, padding: 20, borderRadius: 20, elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
+    formTitle: { fontSize: 16, fontWeight: 'bold', color: '#1e293b', marginBottom: 20 },
+    imageSection: { alignItems: 'center', marginBottom: 20 },
+    imagePlaceholder: { width: '100%', height: 180, backgroundColor: '#f1f5f9', borderRadius: 15, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#e2e8f0', borderStyle: 'dashed', overflow: 'hidden' },
+    imageSelected: { borderStyle: 'solid', borderColor: '#633594' },
+    fullImgContainer: { width: '100%', height: '100%' },
+    fullImg: { width: '100%', height: '100%', resizeMode: 'cover' },
+    uploadOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(255,255,255,0.8)', justifyContent: 'center', alignItems: 'center' },
+    progressCircle: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center', elevation: 3, marginBottom: 10 },
+    uploadText: { color: '#633594', fontWeight: 'bold', fontSize: 12 },
+    changePhotoOverlay: { position: 'absolute', bottom: 10, right: 10, backgroundColor: 'rgba(99, 53, 148, 0.8)', flexDirection: 'row', padding: 6, borderRadius: 10, alignItems: 'center' },
+    removeImgBtn: { marginTop: 8 },
+    removeImgText: { color: '#ef4444', fontSize: 12, fontWeight: '600' },
+    label: { fontSize: 12, fontWeight: 'bold', color: '#64748b', marginBottom: 6, marginLeft: 2 },
+    input: { backgroundColor: '#f8fafc', borderRadius: 12, padding: 12, marginBottom: 15, borderWidth: 1, borderColor: '#e2e8f0', color: '#1e293b' },
+    textArea: { height: 80, textAlignVertical: 'top' },
+    pickerBox: { backgroundColor: '#f8fafc', borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0', marginBottom: 15, overflow: 'hidden' },
+    saveBtn: { backgroundColor: '#633594', padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 10 },
     saveBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
     listSection: { padding: 15 },
-    serviceItem: { backgroundColor: '#fff', flexDirection: 'row', padding: 12, borderRadius: 15, marginBottom: 12, alignItems: 'center', elevation: 2 },
-    img: { width: 55, height: 55, borderRadius: 10, backgroundColor: '#f1f5f9' },
-    info: { flex: 1, marginLeft: 12 },
+    serviceItem: { backgroundColor: '#fff', flexDirection: 'row', padding: 12, borderRadius: 16, marginBottom: 12, alignItems: 'center', elevation: 2 },
+    img: { width: 60, height: 60, borderRadius: 12 },
+    info: { flex: 1, marginLeft: 15 },
     name: { fontWeight: 'bold', fontSize: 15, color: '#1e293b' },
-    price: { color: '#633594', fontSize: 13, fontWeight: 'bold', marginTop: 2 },
-    actions: { flexDirection: 'row', alignItems: 'center' }
+    price: { color: '#633594', fontSize: 14, fontWeight: 'bold', marginTop: 2 },
+    actions: { flexDirection: 'row' }
 });

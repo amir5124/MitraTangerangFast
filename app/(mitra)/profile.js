@@ -1,3 +1,6 @@
+
+import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect, useRouter,router } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
@@ -12,10 +15,104 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect, useRouter } from 'expo-router';
 import API from '../utils/api';
 import { storage } from '../utils/storage';
+
+const BASE_URL = 'https://backend.tangerangfast.online';
+
+const getInitials = (name) => {
+  if (!name || name.trim() === '') return 'U';
+  const words = name.trim().split(/\s+/);
+  if (words.length === 1) return words[0].charAt(0).toUpperCase();
+  return (words[0].charAt(0) + words[words.length - 1].charAt(0)).toUpperCase();
+};
+
+const handleLogout = () => {
+  Alert.alert(
+    "Konfirmasi Keluar",
+    "Apakah Anda yakin ingin keluar?",
+    [
+      {
+        text: "Batal",
+        onPress: () => console.log("Logout dibatalkan"),
+        style: "cancel"
+      },
+      {
+        text: "Keluar",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            // 1. Hapus semua session/token di storage
+            await storage.clearAll();
+
+            // 2. Reset state (opsional jika kamu pakai state lokal untuk foto)
+            if (typeof setStoreLogo === 'function') {
+                setStoreLogo(null);
+            }
+
+            console.log("Berhasil keluar dan menghapus session");
+
+            // 3. Arahkan balik ke halaman login menggunakan expo-router
+            // Gunakan path file kamu, misal '/login' atau sesuai struktur app/ kamu
+            router.replace('/login'); 
+
+          } catch (error) {
+            console.error("Gagal saat proses logout:", error);
+            Alert.alert("Error", "Gagal keluar dari akun. Silakan coba lagi.");
+          }
+        }
+      }
+    ],
+    { cancelable: true }
+  );
+};
+const getProfileImageUri = (user) => {
+  if (!user?.profile_picture || user.profile_picture === 'null' || user.profile_picture === '') {
+    return null;
+  }
+
+  const path = user.profile_picture;
+
+  if (path.startsWith('http')) {
+    return path.replace('http://', 'https://');
+  }
+
+  const hasFolder = path.includes('uploads/profiles');
+  const cleanPath = path.startsWith('/') ? path.substring(1) : path;
+
+  return hasFolder
+    ? `${BASE_URL}/${cleanPath}`
+    : `${BASE_URL}/uploads/profiles/${cleanPath}`;
+};
+
+const AvatarView = ({ user }) => {
+  const [imageError, setImageError] = useState(false);
+  const imageUri = getProfileImageUri(user);
+  const showImage = imageUri && !imageError;
+
+  if (showImage) {
+    return (
+      <Image
+        source={{ uri: imageUri }}
+        style={styles.avatar}
+        onError={() => {
+          console.warn('[Avatar] Gagal memuat gambar profil, fallback ke inisial:', imageUri);
+          setImageError(true);
+        }}
+        onLoad={() => console.log('[Avatar] Berhasil memuat gambar profil:', imageUri)}
+      />
+    );
+  }
+
+  const initials = getInitials(user?.full_name || '');
+  console.log('[Avatar] Menampilkan inisial:', initials, '| Nama:', user?.full_name);
+
+  return (
+    <View style={styles.avatarInitials}>
+      <Text style={styles.avatarInitialsText}>{initials}</Text>
+    </View>
+  );
+};
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -23,9 +120,19 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [walletData, setWalletData] = useState(null);
 
-  // Mengambil data dari DATABASE (API)
+  const formatRupiah = (value) => {
+    const numericValue = typeof value === 'string' ? parseFloat(value) : value;
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+    }).format(numericValue || 0);
+  };
+
   const fetchUserProfile = async () => {
+    console.log('[Profile] Memulai fetch data profil...');
     try {
       const response = await API.get('/auth/profile');
 
@@ -33,14 +140,38 @@ export default function ProfileScreen() {
         const userData = response.data.user;
         setUser(userData);
         await storage.save('userData', JSON.stringify(userData));
+        console.log('[Profile] Data profil berhasil dimuat:', userData?.full_name);
+      } else {
+        console.warn('[Profile] Response tidak sukses:', response.data);
       }
     } catch (error) {
-      console.error('❌ Gagal ambil data dari DB:', error);
+      console.error('[Profile] Gagal ambil data dari server:', error?.message || error);
       const cached = await storage.get('userData');
       if (cached) {
-        setUser(JSON.parse(cached));
-        console.log('📦 Using cached data instead.');
+        const parsedCache = JSON.parse(cached);
+        setUser(parsedCache);
+        console.log('[Profile] Menggunakan data cache:', parsedCache?.full_name);
+      } else {
+        console.warn('[Profile] Tidak ada cache tersedia');
       }
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const fetchWalletData = async () => {
+    console.log('[Wallet] Memulai fetch data wallet...');
+    try {
+      const response = await API.get('/balance');
+      if (response.data.success) {
+        setWalletData(response.data.data);
+        console.log('[Wallet] Saldo berhasil dimuat:', response.data.data?.wallet?.balance);
+      } else {
+        console.warn('[Wallet] Response tidak sukses:', response.data);
+      }
+    } catch (error) {
+      console.error('[Wallet] Gagal memuat data wallet:', error?.message || error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -49,38 +180,51 @@ export default function ProfileScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      console.log('[Profile] Screen difokuskan, memuat ulang data...');
       fetchUserProfile();
+      fetchWalletData();
     }, []),
   );
 
   const onRefresh = () => {
+    console.log('[Profile] Pull-to-refresh dipicu');
     setRefreshing(true);
     fetchUserProfile();
+    fetchWalletData();
   };
 
   const logoutAction = async () => {
+    console.log('[Auth] Memulai proses logout...');
     try {
       const fcmToken = await storage.get('fcmToken');
       await API.post('/auth/logout', { fcm_token: fcmToken });
+      console.log('[Auth] Logout berhasil dari server');
     } catch (error) {
-      console.log('Logout error bypass...');
+      console.warn('[Auth] Logout error (bypass):', error?.message || error);
     } finally {
       await storage.delete('userToken');
       await storage.delete('userData');
+      console.log('[Auth] Token dan userData dihapus, redirect ke login');
       router.replace('/(auth)/login');
     }
   };
 
   const handleWhatsApp = async () => {
-    const phoneNumber = '6282323907426';
+    const phoneNumber = '628211074757';
     const message = 'Halo Admin, saya butuh bantuan terkait layanan TangerangFast.';
     const url = `whatsapp://send?phone=${phoneNumber}&text=${encodeURIComponent(message)}`;
+    console.log('[WhatsApp] Membuka kontak admin:', phoneNumber);
     try {
       const supported = await Linking.canOpenURL(url);
-      supported
-        ? await Linking.openURL(url)
-        : await Linking.openURL(`https://wa.me/${phoneNumber}`);
+      if (supported) {
+        await Linking.openURL(url);
+        console.log('[WhatsApp] Dibuka via app');
+      } else {
+        await Linking.openURL(`https://wa.me/${phoneNumber}`);
+        console.log('[WhatsApp] Dibuka via browser fallback');
+      }
     } catch (error) {
+      console.error('[WhatsApp] Gagal membuka WhatsApp:', error?.message || error);
       Alert.alert('Error', 'Tidak dapat membuka WhatsApp');
     }
   };
@@ -95,9 +239,14 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.mainWrapper}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Akun Profile</Text>
-        <Text style={styles.subtitle}>Informasi akun profile Anda</Text>
+      <View style={styles.customHeader}>
+        <View style={styles.headerContent}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color="#000" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Profil Saya</Text>
+          <View style={{ width: 40 }} />
+        </View>
       </View>
 
       <ScrollView
@@ -112,12 +261,7 @@ export default function ProfileScreen() {
         }>
         <View style={styles.heroSection}>
           <View style={styles.avatarWrapper}>
-            <Image
-              source={{
-                uri: `https://ui-avatars.com/api/?name=${user?.full_name}&background=633594&color=fff&size=128`,
-              }}
-              style={styles.avatar}
-            />
+            <AvatarView user={user} />
             <TouchableOpacity
               style={styles.editBadge}
               onPress={() => router.push('/edit-profile')}>
@@ -128,20 +272,28 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.infoCard}>
-          <InfoItem
-            icon="call"
-            label="Nomor Telepon"
-            value={user?.phone_number || '-'}
-          />
+          <InfoItem icon="call" label="Nomor Telepon" value={user?.phone_number || '-'} />
           <View style={styles.infoDivider} />
-          <InfoItem
-            icon="mail"
-            label="Alamat Email"
-            value={user?.email || '-'}
-          />
+          <InfoItem icon="mail" label="Alamat Email" value={user?.email || '-'} />
         </View>
 
-
+        <View style={styles.fullStatsContainer}>
+          <TouchableOpacity
+            onPress={() => router.push('/withdraw')}
+            style={styles.wideStatItem}
+            activeOpacity={0.8}>
+            <View style={styles.statIconCircle}>
+              <Ionicons name="wallet-outline" size={20} color="#633594" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.wideStatLabel}>Saldo Wallet</Text>
+              <Text style={styles.wideStatValue}>
+                {walletData ? formatRupiah(walletData.wallet.balance) : 'Rp 0'}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#CBD5E1" />
+          </TouchableOpacity>
+        </View>
 
         <View style={styles.menuGroup}>
           <Text style={styles.groupLabel}>Aktivitas & Keamanan</Text>
@@ -151,7 +303,11 @@ export default function ProfileScreen() {
             label="Edit Profil"
             onPress={() => router.push('/edit-profile')}
           />
-
+          <MenuItem
+            icon="time-outline"
+            label="Riwayat Transaksi"
+            onPress={() => router.push('/(mitra)/riwayat')}
+          />
           <MenuItem
             icon="shield-checkmark-outline"
             label="Ubah Password"
@@ -163,8 +319,11 @@ export default function ProfileScreen() {
             onPress={handleWhatsApp}
           />
 
-          <TouchableOpacity style={styles.logoutBtn} onPress={logoutAction}>
-            <Ionicons name="log-out-outline" size={20} color="#FF3B30" />
+          <TouchableOpacity
+            style={styles.logoutButton}
+            onPress={handleLogout} // Memanggil fungsi alert konfirmasi
+          >
+            <Ionicons name="log-out-outline" size={22} color="#FF3B30" />
             <Text style={styles.logoutText}>Keluar dari Akun</Text>
           </TouchableOpacity>
         </View>
@@ -176,7 +335,6 @@ export default function ProfileScreen() {
   );
 }
 
-// Sub-components
 const InfoItem = ({ icon, label, value }) => (
   <View style={styles.infoItem}>
     <View style={styles.iconCircle}>
@@ -190,10 +348,7 @@ const InfoItem = ({ icon, label, value }) => (
 );
 
 const MenuItem = ({ icon, label, onPress }) => (
-  <TouchableOpacity
-    style={styles.menuItem}
-    activeOpacity={0.6}
-    onPress={onPress}>
+  <TouchableOpacity style={styles.menuItem} activeOpacity={0.6} onPress={onPress}>
     <View style={styles.menuLeft}>
       <View style={styles.menuIconBg}>
         <Ionicons name={icon} size={20} color="#633594" />
@@ -205,7 +360,7 @@ const MenuItem = ({ icon, label, onPress }) => (
 );
 
 const styles = StyleSheet.create({
-  mainWrapper: { flex: 1, backgroundColor: '#F8FAFC' },
+  mainWrapper: { flex: 1, backgroundColor: '#FFF' },
   container: { flex: 1, backgroundColor: '#FFFFFF' },
   loadingContainer: {
     flex: 1,
@@ -213,9 +368,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#FFF',
   },
-  header: { padding: 25, backgroundColor: '#633594' },
-  title: { fontSize: 22, fontWeight: 'bold', color: '#fff' },
-  subtitle: { fontSize: 13, color: '#d8b4fe', marginTop: 5 },
+  customHeader: {
+    backgroundColor: '#FFF',
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  headerContent: {
+    height: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 15,
+    justifyContent: 'space-between',
+  },
   backButton: { padding: 5 },
   headerTitle: {
     color: '#000',
@@ -237,6 +406,23 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     borderWidth: 4,
     borderColor: '#F8FAFC',
+    backgroundColor: '#F1F5F9',
+  },
+  avatarInitials: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 4,
+    borderColor: '#F8FAFC',
+    backgroundColor: '#633594',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarInitialsText: {
+    color: '#FFFFFF',
+    fontSize: 32,
+    fontWeight: '700',
+    letterSpacing: 1,
   },
   editBadge: {
     position: 'absolute',
@@ -344,8 +530,4 @@ const styles = StyleSheet.create({
     marginTop: 40,
     fontWeight: '500',
   },
-  btn: { backgroundColor: '#633594', padding: 18, borderRadius: 15, alignItems: 'center', marginTop: 35, elevation: 3 },
-  btnText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
-  logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 25, padding: 15, backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: '#fee2e2' },
-  logoutText: { color: '#FF3B30', fontWeight: 'bold', marginLeft: 10, fontSize: 14 }
 });

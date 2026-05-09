@@ -69,33 +69,48 @@ export default function DashboardMitra() {
         initData();
     }, []);
 
-   const fetchStorePhoto = async (storeId) => {
-    try {
-        const token = await storage.get('userToken');
-        const res = await API.get(`/mitra/profile/${storeId}`, {
-            headers: { Authorization: `Bearer ${token}` }
-        });
+    const fetchStorePhoto = async () => {
+        try {
+            const token = await storage.get('userToken');
+            const res = await API.get('/auth/profile', {
+                headers: { Authorization: `Bearer ${token}` }
+            });
 
-        if (res.data && res.data.store_logo_url) {
-            let url = res.data.store_logo_url;
-            const baseUrl = 'https://backend.tangerangfast.online';
+            console.log("Cek Data User:", res.data.user); // Ini harusnya muncul object user
 
-            // Samakan logikanya dengan halaman Complete Profile
-            // Jika ada '/uploads/' tapi belum ada '/services/', selipkan '/services/'
-            if (url.includes('/uploads/') && !url.includes('/services/')) {
-                url = url.replace('/uploads/', '/uploads/services/');
+            // SESUAIKAN: Ambil dari res.data.user
+            const user = res.data?.user;
+            const path = user?.profile_picture;
+
+            if (path && path !== 'null' && path !== '') {
+                const baseUrl = 'https://backend.tangerangfast.online';
+                let url = path;
+
+                if (url.startsWith('http')) {
+                    url = url.replace('http://', 'https://');
+                } else {
+                    // Hapus '/' di awal jika ada agar tidak double slash
+                    const cleanPath = url.startsWith('/') ? url.substring(1) : url;
+
+                    // Cek folder uploads/profiles
+                    const hasFolder = cleanPath.includes('uploads/profiles');
+
+                    url = hasFolder
+                        ? `${baseUrl}/${cleanPath}`
+                        : `${baseUrl}/uploads/profiles/${cleanPath}`;
+                }
+
+                console.log("URL HASIL FIX:", url);
+                setStoreLogo(url);
+            } else {
+                console.log("Profil picture memang kosong di database");
+                setStoreLogo(null);
             }
-
-            const cleanPath = url.startsWith('/') ? url : `/${url}`;
-            const fullUrl = `${baseUrl}${cleanPath}`;
-
-            console.log("Full Logo URL (Corrected):", fullUrl);
-            setStoreLogo(fullUrl);
+        } catch (err) {
+            console.error("Gagal ambil profil user:", err);
+            setStoreLogo(null);
         }
-    } catch (err) {
-        console.error("Gagal ambil foto toko:", err);
-    }
-};
+    };
     const formatIDR = (val) => {
         return new Intl.NumberFormat('id-ID', {
             style: 'currency',
@@ -190,6 +205,10 @@ export default function DashboardMitra() {
                                     source={{ uri: storeLogo }}
                                     style={styles.avatarImage}
                                     resizeMode="cover"
+                                    onError={() => {
+                                        console.warn("Link foto rusak, balik ke icon");
+                                        setStoreLogo(null);
+                                    }}
                                 />
                             ) : (
                                 <Ionicons name="person" size={40} color={THEME_COLOR} />
@@ -215,26 +234,58 @@ export default function DashboardMitra() {
                     <Text style={styles.sectionTitle}>Statistik {dashboardData?.store_name}</Text>
 
                     <View style={styles.statsGrid}>
-                        <StatBox
-                            title="Total Pendapatan"
-                            value={formatIDR(dashboardData?.stats?.revenue)}
-                            image="https://cdn-icons-png.flaticon.com/512/2489/2489756.png"
-                        />
-                        <StatBox
-                            title="Pekerjaan Aktif"
-                            value={dashboardData?.stats?.active_jobs || 0}
-                            image="https://cdn-icons-png.flaticon.com/512/10384/10384161.png"
-                        />
-                        <StatBox
-                            title="Rating Mitra"
-                            value={dashboardData?.stats?.rating || "0.0"}
-                            stars={true}
-                        />
-                        <StatBox
-                            title="Pekerjaan Selesai"
-                            value={dashboardData?.stats?.completed_jobs || 0}
-                            image="https://cdn-icons-png.flaticon.com/512/3062/3062534.png"
-                        />
+                        {/* Box 1: Total Pendapatan */}
+                        <TouchableOpacity
+                            style={styles.statBoxWrapper}
+                            onPress={() => router.push('/statistik-detail')}
+                            activeOpacity={0.7}
+                        >
+                            <StatBox
+                                title="Total Pendapatan"
+                                value={formatIDR(dashboardData?.stats?.revenue)}
+                                image="https://cdn-icons-png.flaticon.com/512/2489/2489756.png"
+                            />
+                        </TouchableOpacity>
+
+                        {/* Box 2: Pekerjaan Aktif (Sekarang bisa diklik ke statistik-detail) */}
+                        <TouchableOpacity
+                            style={styles.statBoxWrapper}
+                            onPress={() => router.push('/statistik-detail')}
+                            activeOpacity={0.7}
+                        >
+                            <StatBox
+                                title="Pekerjaan Aktif"
+                                value={dashboardData?.stats?.active_jobs || 0}
+                                image="https://cdn-icons-png.flaticon.com/512/10384/10384161.png"
+                            />
+                        </TouchableOpacity>
+
+                        {/* Box 3: Rating Mitra (Ke Review Screen) */}
+                        <TouchableOpacity
+                            style={styles.statBoxWrapper}
+                            onPress={() => router.push('/review-screen')}
+                            activeOpacity={0.7}
+                        >
+                            <StatBox
+                                title="Rating Mitra"
+                                value={dashboardData?.stats?.rating || "0.0"}
+                                stars={true}
+                                isInsideTouchable={true}
+                            />
+                        </TouchableOpacity>
+
+                        {/* Box 4: Pekerjaan Selesai (Sekarang bisa diklik ke statistik-detail) */}
+                        <TouchableOpacity
+                            style={styles.statBoxWrapper}
+                            onPress={() => router.push('/statistik-detail')}
+                            activeOpacity={0.7}
+                        >
+                            <StatBox
+                                title="Pekerjaan Selesai"
+                                value={dashboardData?.stats?.completed_jobs || 0}
+                                image="https://cdn-icons-png.flaticon.com/512/3062/3062534.png"
+                            />
+                        </TouchableOpacity>
                     </View>
 
                     {/* 3. Recent Orders Section */}
@@ -312,7 +363,7 @@ export default function DashboardMitra() {
 
 // Komponen StatBox tetap sama...
 const StatBox = ({ title, value, image, stars }) => (
-    <View style={styles.statBox}>
+    <View style={styles.statBox}> 
         {stars ? (
             <View style={styles.starRow}>
                 <View style={{ flexDirection: 'row', marginRight: 5 }}>
@@ -353,12 +404,32 @@ const styles = StyleSheet.create({
     badgeText: { color: '#fff', fontSize: 9, fontWeight: 'bold' },
     contentPadding: { padding: 20 },
     sectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#333', marginBottom: 10 },
-    statsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 10 },
-    statBox: {
-        backgroundColor: '#fff', width: '48%', marginBottom: 15,
-        padding: 15, borderRadius: 15, alignItems: 'center',
-        elevation: 3, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 5
+    
+  statsGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+        paddingHorizontal: 2,
+        // Hapus alignItems: 'stretch' jika ada, karena kita pakai aspectRatio
     },
+
+   statBoxWrapper: {
+    width: '48%',
+    height: 105,       // Turunkan angka ini jika masih kemandangan (terlalu tinggi)
+    marginBottom: 15,  // Jarak ke kotak di bawahnya
+},
+
+// 2. Paksa isi Box mengikuti Wrapper
+statBox: {
+    backgroundColor: '#fff',
+    flex: 1,           // Ini akan mengikuti height: 105 di atas
+    width: '100%',
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 10,
+    elevation: 3,
+},
     statIcon: { width: 30, height: 30, marginBottom: 8, resizeMode: 'contain' },
     statValue: { fontSize: 15, fontWeight: 'bold', color: '#333' },
     statLabel: { fontSize: 10, color: '#999', marginTop: 2 },
@@ -400,6 +471,7 @@ const styles = StyleSheet.create({
         marginTop: 5,
         textAlign: 'center'
     },
+
 
     helpBanner: {
         backgroundColor: '#F3E5F5', borderRadius: 15, padding: 20,

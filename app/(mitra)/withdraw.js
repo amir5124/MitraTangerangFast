@@ -38,6 +38,8 @@ export default function WithdrawPage() {
     const [userData, setUserData] = useState(null);
     const [balance, setBalance] = useState(0);
     const [adminFee, setAdminFee] = useState(0);
+    const [history, setHistory] = useState([]);
+    const [loadingHistory, setLoadingHistory] = useState(false);
 
     // Form States
     const [amount, setAmount] = useState('');
@@ -46,10 +48,6 @@ export default function WithdrawPage() {
     const [bankInfo, setBankInfo] = useState({ holder: '', inquiryReff: '' });
     const [searchQuery, setSearchQuery] = useState('');
 
-    /**
-     * FUNGSI RESET FORM
-     * Akan dijalankan setiap kali halaman difokuskan
-     */
     const resetForm = useCallback(() => {
         setStep(1);
         setAmount('');
@@ -60,7 +58,6 @@ export default function WithdrawPage() {
         setLoading(false);
     }, []);
 
-    // Gunakan useFocusEffect agar data ter-reset saat kembali ke halaman ini
     useFocusEffect(
         useCallback(() => {
             resetForm();
@@ -76,8 +73,7 @@ export default function WithdrawPage() {
                 setAdminFee(parseInt(res.data.value));
             }
         } catch (e) {
-            console.error("❌ Error Fetch Admin Fee:", e.message);
-            setAdminFee(0); // Default jika gagal
+            setAdminFee(0);
         }
     };
 
@@ -88,6 +84,7 @@ export default function WithdrawPage() {
                 const user = typeof raw === 'string' ? JSON.parse(raw) : raw;
                 setUserData(user);
                 fetchCurrentBalance(user.store_id || user.id);
+                fetchHistory(user.id);
             }
         } catch (e) { console.error(e); }
     };
@@ -101,6 +98,20 @@ export default function WithdrawPage() {
         } catch (e) { console.error(e); }
     };
 
+    const fetchHistory = async (userId) => {
+        setLoadingHistory(true);
+        try {
+            const res = await API.get(`/withdraw/history/${userId}`);
+            if (res.data.success) {
+                setHistory(res.data.data);
+            }
+        } catch (e) {
+            console.error(e.message);
+        } finally {
+            setLoadingHistory(false);
+        }
+    };
+
     const formatIDR = (val) => new Intl.NumberFormat('id-ID', {
         style: 'currency', currency: 'IDR', minimumFractionDigits: 0
     }).format(val || 0);
@@ -109,14 +120,12 @@ export default function WithdrawPage() {
         const val = parseInt(amount);
         const totalNeeded = val + adminFee;
 
-        if (!val || val < 50000) {
-        return Alert.alert("Minimal Penarikan", "Batas minimal penarikan adalah Rp 50.000");
-    }
+        if (!val || val < 50000) return Alert.alert("Minimal Penarikan", "Batas minimal penarikan adalah Rp 50.000");
         if (!selectedBank) return Alert.alert("Error", "Pilih bank tujuan");
         if (!accountNumber) return Alert.alert("Error", "Isi nomor rekening");
         if (totalNeeded > balance) return Alert.alert("Error", "Saldo tidak mencukupi");
 
-        setLoading(true);
+        setLoading(true); // Mulai Overlay
         try {
             const res = await API.post('/withdraw/inquiry', {
                 user_id: userData.id,
@@ -133,12 +142,12 @@ export default function WithdrawPage() {
             }
         } catch (e) {
             Alert.alert("Gagal", e.response?.data?.message || "Rekening tidak ditemukan.");
-        } finally { setLoading(false); }
+        } finally { setLoading(false); } // Selesai Overlay
     };
 
     const handleWithdraw = async () => {
         if (loading) return;
-        setLoading(true);
+        setLoading(true); // Mulai Overlay
         try {
             const res = await API.post('/withdraw/execute', {
                 user_id: userData.id,
@@ -152,7 +161,7 @@ export default function WithdrawPage() {
         } catch (e) {
             setTrxStatus('failed');
             setShowStatusModal(true);
-        } finally { setLoading(false); }
+        } finally { setLoading(false); } // Selesai Overlay
     };
 
     const filteredBanks = BANK_LIST.filter(bank =>
@@ -162,6 +171,16 @@ export default function WithdrawPage() {
     return (
         <View style={{ flex: 1, backgroundColor: '#FDFDFD' }}>
             <StatusBar barStyle="light-content" backgroundColor={THEME_COLOR} />
+
+            {/* --- LOADING OVERLAY --- */}
+            <Modal visible={loading} transparent animationType="fade">
+                <View style={styles.loadingOverlay}>
+                    <View style={styles.loadingCard}>
+                        <ActivityIndicator size="large" color={THEME_COLOR} />
+                        <Text style={styles.loadingText}>Memproses...</Text>
+                    </View>
+                </View>
+            </Modal>
 
             {/* Modal Bank Selection */}
             <Modal visible={showBankModal} animationType="slide" transparent={true}>
@@ -221,7 +240,7 @@ export default function WithdrawPage() {
                             <Text style={styles.label}>Nominal Tarik</Text>
                             <TextInput
                                 style={styles.input}
-                                placeholder="Masukkan nominal (Contoh: 50000)"
+                                placeholder="Masukkan nominal"
                                 keyboardType="numeric"
                                 value={amount}
                                 onChangeText={setAmount}
@@ -247,10 +266,38 @@ export default function WithdrawPage() {
                             <TouchableOpacity
                                 style={[styles.primaryBtn, { backgroundColor: THEME_COLOR }]}
                                 onPress={handleInquiry}
-                                disabled={loading}
                             >
-                                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Lanjutkan</Text>}
+                                <Text style={styles.btnText}>Lanjutkan</Text>
                             </TouchableOpacity>
+
+                            <View style={{ marginTop: 30 }}>
+                                <Text style={[styles.historyBank, { marginBottom: 10 }]}>Riwayat Penarikan Terbaru</Text>
+                                {loadingHistory ? (
+                                    <ActivityIndicator color={THEME_COLOR} />
+                                ) : history.length > 0 ? (
+                                    history.map((item, index) => {
+                                        const foundBank = BANK_LIST.find(b => b.code === item.bankcode);
+                                        const displayBank = foundBank ? foundBank.label : (item.bank_name || 'Bank Transfer');
+                                        return (
+                                            <View key={index} style={styles.historyItem}>
+                                                <View style={{ flex: 1 }}>
+                                                    <Text style={styles.historyBank}>{displayBank}</Text>
+                                                    <Text style={styles.historyAccount}>{item.accountnumber || '-'}</Text>
+                                                    <Text style={styles.historyDate}>{new Date(item.created_at).toLocaleString('id-ID')}</Text>
+                                                </View>
+                                                <View style={{ alignItems: 'flex-end' }}>
+                                                    <Text style={styles.historyAmount}>{formatIDR(parseFloat(item.amount))}</Text>
+                                                    <View style={[styles.statusBadge, { backgroundColor: item.status === 'SUCCESS' ? '#E8F5E9' : '#FFF3E0' }]}>
+                                                        <Text style={[styles.statusBadgeText, { color: item.status === 'SUCCESS' ? '#2E7D32' : '#EF6C00' }]}>{item.status}</Text>
+                                                    </View>
+                                                </View>
+                                            </View>
+                                        );
+                                    })
+                                ) : (
+                                    <Text style={{ textAlign: 'center', color: '#999', fontSize: 13 }}>Belum ada riwayat transaksi</Text>
+                                )}
+                            </View>
                         </View>
                     ) : (
                         <View style={styles.formContainer}>
@@ -266,11 +313,10 @@ export default function WithdrawPage() {
                             </View>
 
                             <TouchableOpacity
-                                style={[styles.primaryBtn, { backgroundColor: loading ? '#A5D6A7' : '#4CAF50' }]}
+                                style={[styles.primaryBtn, { backgroundColor: '#4CAF50' }]}
                                 onPress={handleWithdraw}
-                                disabled={loading}
                             >
-                                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Tarik Sekarang</Text>}
+                                <Text style={styles.btnText}>Tarik Sekarang</Text>
                             </TouchableOpacity>
 
                             <TouchableOpacity onPress={() => setStep(1)} style={styles.backLink}>
@@ -290,15 +336,10 @@ export default function WithdrawPage() {
                             size={80}
                             color={trxStatus === 'success' ? "#4CAF50" : "#F44336"}
                         />
-                        <Text style={styles.statusTitle}>
-                            {trxStatus === 'success' ? "Sukses!" : "Gagal"}
-                        </Text>
+                        <Text style={styles.statusTitle}>{trxStatus === 'success' ? "Sukses!" : "Gagal"}</Text>
                         <Text style={styles.statusSub}>
-                            {trxStatus === 'success'
-                                ? "Permintaan penarikan Anda berhasil diproses."
-                                : "Maaf, transaksi gagal. Silakan coba lagi nanti."}
+                            {trxStatus === 'success' ? "Permintaan penarikan Anda berhasil diproses." : "Maaf, transaksi gagal."}
                         </Text>
-
                         <TouchableOpacity
                             style={[styles.primaryBtn, { backgroundColor: THEME_COLOR, width: '100%' }]}
                             onPress={() => {
@@ -323,6 +364,31 @@ const DetailRow = ({ label, value, bold, color }) => (
 );
 
 const styles = StyleSheet.create({
+    // --- STYLES BARU UNTUK LOADING OVERLAY ---
+    loadingOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)', // Gelapkan background
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    loadingCard: {
+        backgroundColor: '#fff',
+        padding: 30,
+        borderRadius: 15,
+        alignItems: 'center',
+        elevation: 5,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+    },
+    loadingText: {
+        marginTop: 15,
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#333'
+    },
+    // --- STYLES LAMA ---
     content: { paddingBottom: 40 },
     headerCard: { padding: 25, borderBottomLeftRadius: 25, borderBottomRightRadius: 25 },
     backBtn: { marginBottom: 15 },
@@ -355,5 +421,15 @@ const styles = StyleSheet.create({
     statusOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 },
     statusCard: { backgroundColor: '#fff', width: '100%', borderRadius: 25, padding: 30, alignItems: 'center' },
     statusTitle: { fontSize: 22, fontWeight: 'bold', marginTop: 15, color: '#333' },
-    statusSub: { textAlign: 'center', color: '#666', marginTop: 10, marginBottom: 25, lineHeight: 22 }
+    statusSub: { textAlign: 'center', color: '#666', marginTop: 10, marginBottom: 25, lineHeight: 22 },
+    historyItem: { 
+        flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+        paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#F0F0F0'
+    },
+    historyBank: { fontSize: 14, fontWeight: 'bold', color: '#333' },
+    historyAccount: { fontSize: 12, color: '#633594', fontWeight: '500', marginTop: 2 },
+    historyDate: { fontSize: 10, color: '#999', marginTop: 2 },
+    historyAmount: { fontSize: 14, fontWeight: 'bold', color: '#333' },
+    statusBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4, marginTop: 4 },
+    statusBadgeText: { fontSize: 10, fontWeight: 'bold' }
 });
