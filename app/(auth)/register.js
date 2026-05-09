@@ -34,7 +34,6 @@ export default function RegisterScreen() {
         role: 'mitra',
     });
 
-    // Validasi tombol aktif
     const isFormValid =
         form.full_name !== '' &&
         form.email !== '' &&
@@ -63,6 +62,19 @@ export default function RegisterScreen() {
         }
     };
 
+    // --- FUNGSI SUBSCRIBE TAMBAHAN ---
+    const handleSubscribe = async (token, role) => {
+        try {
+            await API.post('/notifications/subscribe', {
+                token: token,
+                role: role,
+            });
+            console.log(`✅ Berhasil subscribe ke topik: all_${role}`);
+        } catch (error) {
+            console.error('❌ Gagal subscribe saat register:', error.message);
+        }
+    };
+
     const handleRegister = async () => {
         if (!isFormValid) return;
 
@@ -81,22 +93,31 @@ export default function RegisterScreen() {
                 phone_number: form.phone_number,
                 password: form.password,
                 role: form.role,
-                fcm_token: fcmToken
+                fcm_token: fcmToken || 'NO_TOKEN'
             };
 
             const response = await API.post('/auth/register', payload);
 
             if (response.status === 201 || response.status === 200) {
                 const { token, user } = response.data;
+                
+                // 1. Simpan Data Sesi
                 await storage.save('userToken', token);
                 await storage.save('userData', JSON.stringify(user));
 
+                // 2. Logika Auto Subscribe
+                const blacklist = ['NO_TOKEN', 'ERROR_TOKEN', '', null, undefined];
+                if (fcmToken && !blacklist.includes(fcmToken)) {
+                    // Kita gunakan role dari data user yang dikembalikan backend
+                    await handleSubscribe(fcmToken, user.role);
+                }
+
+                // 3. Navigasi ke langkah berikutnya
                 router.replace('/(mitra)/complete-profile');
             }
         } catch (error) {
             const errorMsg = error.response?.data?.message || "Gagal mendaftar, silakan coba lagi";
 
-            // Logika spesifik jika email atau phone sudah ada
             if (errorMsg.toLowerCase().includes('email')) {
                 Toast.show("Email atau Nomor sudah terdaftar!", { backgroundColor: '#E11D48' });
             } else if (errorMsg.toLowerCase().includes('phone') || errorMsg.toLowerCase().includes('telepon')) {
@@ -108,6 +129,7 @@ export default function RegisterScreen() {
             setLoading(false);
         }
     };
+
 
     return (
         <KeyboardAvoidingView

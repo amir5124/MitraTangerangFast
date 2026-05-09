@@ -50,16 +50,24 @@ const LoginScreen = () => {
         }
     };
 
-    // Fungsi pembantu untuk mempermudah pemanggilan Toast
+    // --- FUNGSI SUBSCRIBE BARU ---
+    const handleSubscribe = async (token, role) => {
+        try {
+            await API.post('/notifications/subscribe', {
+                token: token,
+                role: role,
+            });
+            console.log(`✅ Berhasil subscribe ke topik: all_${role}`);
+        } catch (error) {
+            console.error('❌ Gagal subscribe:', error.message);
+        }
+    };
+
     const showToast = (message, type = 'error') => {
         Toast.show(message, {
             duration: Toast.durations.LONG,
             position: Toast.positions.BOTTOM,
-            shadow: true,
-            animation: true,
-            hideOnPress: true,
-            delay: 0,
-            backgroundColor: type === 'success' ? '#633594' : '#E11D48', // Ungu untuk sukses, Merah untuk error
+            backgroundColor: type === 'success' ? '#633594' : '#E11D48',
             textColor: '#ffffff',
         });
     };
@@ -69,10 +77,11 @@ const LoginScreen = () => {
         setLoading(true);
 
         try {
+            // Gunakan fcmToken yang sudah didapat dari useEffect (getDeviceToken)
             const payload = {
                 email: form.email.toLowerCase().trim(),
                 password: form.password,
-                fcm_token: fcmToken,
+                fcm_token: fcmToken || 'NO_TOKEN', // Fallback jika token gagal diambil
                 targetRole: TARGET_ROLE
             };
 
@@ -86,10 +95,17 @@ const LoginScreen = () => {
                     return showToast(`Akses Ditolak. Akun Anda adalah ${user.role}.`);
                 }
 
+                // 1. Simpan Session
                 await storage.save('userToken', token);
                 await storage.save('userData', JSON.stringify(user));
 
+                // 2. Logika Subscribe Otomatis
+                const blacklist = ['NO_TOKEN', 'ERROR_TOKEN', '', null, undefined];
+                if (fcmToken && !blacklist.includes(fcmToken)) {
+                    await handleSubscribe(fcmToken, user.role);
+                }
 
+                // 3. Navigasi
                 router.replace('/(mitra)');
             }
         } catch (error) {

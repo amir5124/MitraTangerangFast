@@ -55,27 +55,32 @@ export default function RootLayout() {
         };
     }, []);
 
-    return (
-        <SafeAreaProvider>
-            <RootSiblingParent>
-                <StatusBar style="light" backgroundColor="#633594" translucent={true} />
-                <SafeAreaView style={{ flex: 1, backgroundColor: '#633594' }}>
-                    <Stack
-                        screenOptions={{
-                            headerShown: false,
-                            contentStyle: { backgroundColor: '#fff' }
-                        }}
-                    >
-                        <Stack.Screen name="index" />
-                        <Stack.Screen name="(auth)" />
-                        <Stack.Screen name="(mitra)" />
-                        <Stack.Screen name="withdraw" />
-                        <Stack.Screen name="review-screen" options={{ title: 'Ulasan Mitra' }} />
-                    </Stack>
-                </SafeAreaView>
-            </RootSiblingParent>
-        </SafeAreaProvider>
-    );
+   return (
+  <SafeAreaProvider>
+    <RootSiblingParent>
+      <StatusBar style="light" backgroundColor="#633594" translucent={true} />
+      
+      {/* 1. SafeAreaView hanya untuk "mendorong" konten turun dari StatusBar */}
+      <SafeAreaView style={{ flex: 0, backgroundColor: '#633594' }} edges={['top']} />
+
+      {/* 2. Area konten utama tanpa background ungu, agar bottom inset transparan/putih */}
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }} edges={['right', 'left', 'bottom']}>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: '#fff' }
+          }}
+        >
+          <Stack.Screen name="index" />
+          <Stack.Screen name="(auth)" />
+          <Stack.Screen name="(mitra)" />
+          <Stack.Screen name="withdraw" />
+          <Stack.Screen name="review-screen" options={{ title: 'Ulasan Mitra' }} />
+        </Stack>
+      </SafeAreaView>
+    </RootSiblingParent>
+  </SafeAreaProvider>
+);
 }
 
 // --- 5. FUNGSI HELPER TOKEN & CHANNEL (ROBUST VERSION) ---
@@ -89,7 +94,7 @@ async function registerForPushNotificationsAsync() {
             importance: Notifications.AndroidImportance.MAX, // Muncul melayang di atas
             vibrationPattern: [0, 250, 250, 250],
             lightColor: '#FF231F7C',
-            sound: 'default', // Menggunakan suara default sistem
+                 sound: "notification", // Menggunakan suara default sistem
             lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
         });
     }
